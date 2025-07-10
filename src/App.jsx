@@ -1,89 +1,94 @@
-import React, { useState, useEffect } from 'react';
-import Form from './components/form';
-import List from './components/list';
-import './App.css';
+import { useState, useEffect } from "react";
+import EvaluacionForm from "./Components/EvaluacionForm";
+import "./App.css";
 
 function App() {
-  const [alumnos, setAlumnos] = useState(() => {
-    const data = localStorage.getItem('alumnos');
-    return data ? JSON.parse(data) : [];
-  });
+  // Estado: lista de evaluaciones
+  const [evaluaciones, setEvaluaciones] = useState([]);
+  // Estado para manejar si estamos editando
+  const [modoEdicion, setModoEdicion] = useState(false);
+  // Evaluación que se está editando
+  const [evaluacionEditando, setEvaluacionEditando] = useState(null);
 
-  const [alumnoAEditar, setAlumnoAEditar] = useState(null);
-
-  // Guarda los alumnos en localStorage cada vez que cambian
+  // Cargar datos desde localStorage al iniciar
   useEffect(() => {
-    localStorage.setItem('alumnos', JSON.stringify(alumnos));
-  }, [alumnos]);
-
-  // Calcula la escala de apreciación según el promedio
-  const calcularApreciacion = (promedio) => {
-    const nota = parseFloat(promedio);
-    if (nota >= 1 && nota <= 3.9) return 'Deficiente';
-    if (nota >= 4.0 && nota <= 5.5) return 'Con mejora';
-    if (nota >= 5.6 && nota <= 6.4) return 'Buen trabajo';
-    if (nota >= 6.5 && nota <= 7.0) return 'Destacado';
-
-    return 'Promedio fuera de rango';
-  };
-    
-
-  // Agrega o actualiza un alumno
-  const addOrUpdateItem = (item) => {
-    if (alumnoAEditar) {
-      // Editar
-      const nuevos = alumnos.map((al) =>
-        al.id === alumnoAEditar.id ? { ...item, id: alumnoAEditar.id } : al
-      );
-      setAlumnos(nuevos);
-      setAlumnoAEditar(null);
-    } else {
-      // Agregar
-      const nuevo = { ...item, id: Date.now() };
-      setAlumnos([...alumnos, nuevo]);
+    const datosGuardados = localStorage.getItem("evaluaciones");
+    if (datosGuardados) {
+      setEvaluaciones(JSON.parse(datosGuardados));
     }
+  }, []);
+
+  // Guardar en localStorage cada vez que cambia la lista
+  useEffect(() => {
+    localStorage.setItem("evaluaciones", JSON.stringify(evaluaciones));
+  }, [evaluaciones]);
+
+  // Agregar una nueva evaluación
+  const agregarEvaluacion = (nueva) => {
+    setEvaluaciones([...evaluaciones, nueva]);
   };
 
-  // Elimina un alumno por su id
-  const deleteItem = (id) => {
-    const filtrados = alumnos.filter((al) => al.id !== id);
-    setAlumnos(filtrados);
+  // Actualizar una evaluación ya existente
+  const actualizarEvaluacion = (datosActualizados) => {
+    const actualizadas = evaluaciones.map((ev) =>
+      ev.id === datosActualizados.id ? datosActualizados : ev
+    );
+    setEvaluaciones(actualizadas);
+    setModoEdicion(false);
+    setEvaluacionEditando(null);
   };
 
-  // Cargar alumno en modo edición
-  const editItem = (alumno) => {
-    setAlumnoAEditar(alumno);
+  // Eliminar una evaluación por ID
+  const eliminarEvaluacion = (id) => {
+    const filtradas = evaluaciones.filter((ev) => ev.id !== id);
+    setEvaluaciones(filtradas);
+  };
+
+  // Cargar datos de una evaluación para editarla
+  const cargarEdicion = (evalSeleccionada) => {
+    setModoEdicion(true);
+    setEvaluacionEditando(evalSeleccionada);
+  };
+
+  // Devolver escala de apreciación según promedio
+  const obtenerEscala = (promedio) => {
+    if (promedio >= 6.5) return "Destacado";
+    if (promedio >= 5.6) return "Buen trabajo";
+    if (promedio >= 4.0) return "Con mejora";
+    return "Deficiente";
   };
 
   return (
-    <div className="App">
-      {/* Título principal */}
-      <div className="card">
-        <h1>Evaluación de Alumnos</h1>
-      </div>
+    <div>
+      <h1>Evaluación de Alumnos</h1>
+      <EvaluacionForm
+        onAgregar={agregarEvaluacion}
+        onActualizar={actualizarEvaluacion}
+        modoEdicion={modoEdicion}
+        evaluacionEditando={evaluacionEditando}
+      />
 
-      {/* Tarjeta de formulario */}
-      <div className="card">
-        <h2 style={{ textAlign: 'center', marginBottom: '1rem' }}>
-          {alumnoAEditar ? 'Editar Evaluación' : 'Agregar Nueva Evaluación'}
-        </h2>
-        <Form addOrUpdateItem={addOrUpdateItem} itemToEdit={alumnoAEditar} />
-      </div>
-
-      {/* Tarjeta de lista */}
-      <div className="card">
-        <List
-          items={alumnos}
-          deleteItem={deleteItem}
-          editItem={editItem}
-          calcularApreciacion={calcularApreciacion}
-        />
-      </div>
+      <h2>Evaluaciones Guardadas</h2>
+      {evaluaciones.length === 0 ? (
+        <p>No hay evaluaciones aún</p>
+      ) : (
+        evaluaciones.map((ev) => (
+          <div key={ev.id} className="card">
+            <p><strong>Alumno:</strong> {ev.nombre}</p>
+            <p><strong>Asignatura:</strong> {ev.asignatura}</p>
+            <p><strong>Promedio:</strong> {ev.promedio}</p>
+            <span className={`etiqueta ${obtenerEscala(ev.promedio).toLowerCase().replace(" ", "-")}`}>
+              {obtenerEscala(ev.promedio)}
+            </span>
+            <div className="acciones">
+              <button className="editar" onClick={() => cargarEdicion(ev)}>Editar</button>
+              <button className="eliminar" onClick={() => eliminarEvaluacion(ev.id)}>Eliminar</button>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
-
-
-
 
 export default App;
